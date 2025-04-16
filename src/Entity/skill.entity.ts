@@ -36,8 +36,8 @@ export default class SkillEntity {
   @JoinColumn({ name: 'subcriberId' })
   subcriber: SubcriberEntity;
 
-  @Column()
-  isActive: boolean;
+  @Column({ default: false })
+  isActive: Boolean;
 
   @CreateDateColumn()
   createdAt: Date;

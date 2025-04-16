@@ -56,7 +56,7 @@ export default class UserEntity {
   })
   roles: RoleEntity[];
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   refreshToken: string;
 
   @Column({ default: 'new' })

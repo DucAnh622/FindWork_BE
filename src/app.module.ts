@@ -46,6 +46,7 @@ import { UploadModule } from './Modules/Upload/upload.module';
           type: 'mysql',
           host: configService.get(`DB_HOST`),
           port: configService.get(`DB_PORT`),
+          password: configService.get(`DB_PASSWORD`),
           username: configService.get('DB_USER'),
           database: configService.get('DB_NAME'),
           entities: [

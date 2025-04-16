@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToMany,
+  JoinColumn,
+  ManyToOne,
+} from 'typeorm';
 import CompanyEntity from './company.entity';
 import ResumeEntity from './resume.entity';
 import SkillEntity from './skill.entity';
@@ -11,24 +20,28 @@ export default class JobEntity {
   @Column()
   name: string;
 
-  @ManyToOne(() => CompanyEntity, (company) => company.jobs,{ onDelete: 'CASCADE' })
+  @ManyToOne(() => CompanyEntity, (company) => company.jobs, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'companyId' })
   company: CompanyEntity | null;
 
-  @ManyToMany(() => ResumeEntity, (resume) => resume.jobs, { onDelete: 'CASCADE' })
+  @ManyToMany(() => ResumeEntity, (resume) => resume.jobs, {
+    onDelete: 'CASCADE',
+  })
   resumes: ResumeEntity[];
 
   @ManyToMany(() => SkillEntity, (skill) => skill.jobs, { onDelete: 'CASCADE' })
   skills: SkillEntity[];
 
-  @Column({default:1})
-  quantity:number;
+  @Column({ default: 1 })
+  quantity: number;
 
-  @Column({type:'text'})
+  @Column({ type: 'text' })
   description: string;
 
   @Column()
-  level:string;
+  level: string;
 
   @Column()
   address: string;
@@ -57,7 +70,7 @@ export default class JobEntity {
   @Column()
   endDate: Date;
 
-  @Column()
+  @Column({ default: false })
   isActive: Boolean;
 
   @CreateDateColumn()

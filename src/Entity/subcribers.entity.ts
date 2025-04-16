@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToMany,
+  JoinTable,
+  OneToMany,
+} from 'typeorm';
 import SkillEntity from './skill.entity';
 
 @Entity('subcribers')
@@ -12,8 +21,8 @@ export default class SubcriberEntity {
   @OneToMany(() => SkillEntity, (skill) => skill.subcriber)
   skills: SkillEntity[];
 
-  @Column()
-  isActive: boolean;  
+  @Column({ default: false })
+  isActive: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

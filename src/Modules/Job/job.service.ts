@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { JobCreateDto } from './DTO/JobCreate';
 import { JobUpdateDto } from './DTO/JobUpdate';
-import { In, Repository } from 'typeorm';
+import { In, Like, Repository } from 'typeorm';
 import JobEntity from 'src/Entity/job.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import SkillEntity from 'src/Entity/skill.entity';
@@ -18,98 +18,99 @@ export class JobService {
     private readonly companyRepository: Repository<CompanyEntity>,
   ) {}
 
-  async filterListJob(
-    page: number,
-    limit: number,
-    sort: string,
-    key: string,
-    companyId: number,
-    skillId: number[],
-    experience: string[],
-    level: string[],
-    address: string,
-  ) {
-    const queryBuilder = this.jobRepository.createQueryBuilder('job');
-    if (companyId) {
-      queryBuilder.andWhere('job.companyId = :companyId', { companyId });
-    }
-    if (address) {
-      queryBuilder.andWhere('job.address = :address', { address });
-    }
-    if (key) {
-      queryBuilder.andWhere('job.jobTitle LIKE :key', { key: `%${key}%` });
-    }
-    if (skillId && skillId.length > 0) {
-      queryBuilder.andWhere('job.skillId IN (:...skillId)', { skillId });
-    }
-    if (experience && experience.length > 0) {
-      queryBuilder.andWhere('job.experience IN (:...experience)', {
-        experience,
-      });
-    }
-    if (level && level.length > 0) {
-      queryBuilder.andWhere('job.level IN (:...level)', { level });
-    }
-    queryBuilder
-      .skip((page - 1) * limit)
-      .take(limit)
-      .orderBy(`job.${sort}`, 'DESC');
-    const [list, total] = await queryBuilder.getManyAndCount();
-    return {
-      list: list,
-      limit: limit,
-      page: page,
-      totalPages: Math.ceil(total / limit),
-    };
-  }
-
   async getListJob(
     page: number,
     limit: number,
     sort: 'ASC' | 'DESC',
     order: string,
   ) {
-    let [jobs, total] = await this.jobRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-      relations: ['company', 'skills'],
-      order: {
-        [order]: sort,
-      },
-    });
+    const query = this.jobRepository
+      .createQueryBuilder('job')
+      .leftJoinAndSelect('job.company', 'company')
+      .leftJoinAndSelect('job.skills', 'skills')
+      .skip((page - 1) * limit)
+      .take(limit);
 
-    const list = jobs.map((job) => {
-      return {
-        ...job,
-        company: job.company?.name,
-        skills: job.skills.map((skill) => skill.name),
-      };
-    });
+    if (order === 'company') {
+      query.orderBy('company.name', sort);
+    } else {
+      query.orderBy(`job.${order}`, sort);
+    }
+
+    const [jobs, total] = await query.getManyAndCount();
+
+    const list = jobs.map((job) => ({
+      ...job,
+      company: job.company?.name,
+      skills: job.skills.map((skill) => skill.name),
+    }));
 
     return {
-      list: list,
-      page,
+      list,
       limit,
       total,
+      page,
       totalPages: Math.ceil(total / limit),
     };
   }
 
-  async searchListJob(page: number, limit: number, sort: string, key: string) {
-    let [list, total] = await this.jobRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-      where: {
-        name: `%${key}%`,
-      },
-      order: {
-        [sort]: 'DESC',
-      },
-    });
+  async searchListJob(
+    page: number,
+    limit: number,
+    keyword: string,
+    address: string[],
+    level: string[],
+    step: string[],
+    order: string,
+    sort: 'ASC' | 'DESC',
+  ) {
+    const validSort: 'ASC' | 'DESC' =
+      sort?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const validOrder = order || 'createdAt';
+
+    const qb = this.jobRepository
+      .createQueryBuilder('job')
+      .leftJoinAndSelect('job.company', 'company')
+      .leftJoinAndSelect('job.skills', 'skills')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .orderBy(`job.${validOrder}`, validSort);
+
+    if (keyword) {
+      qb.andWhere('job.name LIKE :keyword', { keyword: `%${keyword}%` });
+    }
+
+    if (address?.length) {
+      const addrConditions = address.map(
+        (_, i) => `job.address LIKE :addr${i}`,
+      );
+      const addrParams = Object.fromEntries(
+        address.map((val, i) => [`addr${i}`, `%${val}%`]),
+      );
+      qb.andWhere(`(${addrConditions.join(' OR ')})`, addrParams);
+    }
+
+    if (level?.length) {
+      qb.andWhere('job.level IN (:...level)', { level });
+    }
+
+    if (step?.length) {
+      qb.andWhere('job.step IN (:...step)', { step });
+    }
+
+    const [jobs, total] = await qb.getManyAndCount();
+
+    const list = jobs.map((job) => ({
+      ...job,
+      company: job.company?.name || null,
+      skills: job.skills?.map((skill) => skill.name) || [],
+    }));
+
     return {
-      list: list,
-      limit: limit,
-      page: page,
+      list,
+      limit,
+      total,
+      page,
       totalPages: Math.ceil(total / limit),
     };
   }
@@ -226,16 +227,16 @@ export class JobService {
     if (!Array.isArray(ids) || ids.length === 0) {
       throw new BadRequestException('Invalid data');
     }
-  
+
     const jobs = await this.jobRepository.find({
       where: { id: In(ids) },
       relations: ['resumes', 'skills'],
     });
-  
+
     if (jobs.length === 0) {
       throw new BadRequestException('Invalid input!');
     }
-  
+
     for (const job of jobs) {
       if (job.resumes.length > 0) {
         await this.jobRepository
@@ -244,7 +245,7 @@ export class JobService {
           .of(job.id)
           .remove(job.resumes);
       }
-  
+
       if (job.skills.length > 0) {
         await this.jobRepository
           .createQueryBuilder()
@@ -253,8 +254,7 @@ export class JobService {
           .remove(job.skills);
       }
     }
-  
+
     return await this.jobRepository.delete(ids);
   }
-  
 }

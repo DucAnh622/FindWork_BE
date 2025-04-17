@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseArrayPipe,
   Post,
   Put,
   Query,
@@ -29,44 +30,45 @@ export class JobController {
     return this.jobService.getListJob(page, limit, sort, order);
   }
 
-  @Get()
+  @Get('/search')
+  @Public()
   @ResponseMessage('Filter list success!')
-  filterListJob(
-    @Query('page') page: number,
-    @Query('limit') limit: number,
-    @Query('sort') sort: string,
-    @Query('key') key: string,
-    @Query('companyId') companyId: number,
-    @Query('skillId') skillId: number[],
-    @Query('level') level: string[],
-    @Query('experience') experience: string[],
-    @Query('address') address: string,
-  ) {
-    return this.jobService.filterListJob(
-      page,
-      limit,
-      sort,
-      key,
-      companyId,
-      skillId,
-      level,
-      experience,
-      address,
-    );
-  }
-
-  @Get()
-  @ResponseMessage('Get list success!')
   searchListJob(
     @Query('page') page: number,
     @Query('limit') limit: number,
-    @Query('sort') sort: string,
-    @Query('key') key: string,
+    @Query('keyword') keyword: string,
+    @Query(
+      'level',
+      new ParseArrayPipe({ items: String, separator: ',', optional: true }),
+    )
+    level: string[] = [],
+    @Query(
+      'address',
+      new ParseArrayPipe({ items: String, separator: ',', optional: true }),
+    )
+    address: string[] = [],
+    @Query(
+      'step',
+      new ParseArrayPipe({ items: String, separator: ',', optional: true }),
+    )
+    step: string[] = [],
+    @Query('order') order: string,
+    @Query('sort') sort: 'ASC' | 'DESC',
   ) {
-    return this.jobService.searchListJob(page, limit, sort, key);
+    return this.jobService.searchListJob(
+      page,
+      limit,
+      keyword,
+      address,
+      level,
+      step,
+      order,
+      sort,
+    );
   }
 
   @Get('/:id')
+  @Public()
   @ResponseMessage('Get list success!')
   getJobById(@Param('id') id: number) {
     return this.jobService.getJobById(id);

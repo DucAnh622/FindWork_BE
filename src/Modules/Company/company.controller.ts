@@ -67,6 +67,7 @@ export class CompanyController {
   }
 
   @Get('/:id')
+  @Public()
   @ResponseMessage('Get company successfully!')
   getByIdCompany(@Param('id') id: number) {
     return this.companyService.getByIdCompany(id);

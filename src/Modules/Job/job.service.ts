@@ -117,18 +117,19 @@ export class JobService {
 
   async getJobById(id: number) {
     const job = await this.jobRepository.findOne({
-      where: { id: id },
+      where: { id },
       relations: ['skills', 'company'],
     });
 
     if (!job) {
       throw new BadRequestException('Job does not exist!');
     }
-    let { company, ...data } = job;
+
     return {
-      ...data,
-      companyId: job.company?.id || null,
+      ...job,
+      companyId: job.company?.id ?? null,
       skills: job.skills.map((skill) => skill.id),
+      listSkill: job.skills.map((skill) => skill.name),
     };
   }
 

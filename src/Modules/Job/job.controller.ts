@@ -30,6 +30,25 @@ export class JobController {
     return this.jobService.getListJob(page, limit, sort, order);
   }
 
+  @Get('company')
+  @ResponseMessage('Get list success!')
+  @Public()
+  getListJobByCompany(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query('sort') sort: 'ASC' | 'DESC',
+    @Query('order') order: string,
+    @Query('companyId') companyId: number,
+  ) {
+    return this.jobService.getListJobByCompany(
+      page,
+      limit,
+      order,
+      sort,
+      companyId,
+    );
+  }
+
   @Get('/search')
   @Public()
   @ResponseMessage('Filter list success!')

@@ -54,6 +54,38 @@ export class JobService {
     };
   }
 
+  async getListJobByCompany(
+    page: number,
+    limit: number,
+    order: string,
+    sort: 'ASC' | 'DESC',
+    companyId: number,
+  ) {
+    const [jobs, total] = await this.jobRepository
+      .createQueryBuilder('job')
+      .leftJoinAndSelect('job.company', 'company')
+      .leftJoinAndSelect('job.skills', 'skill')
+      .where('company.id = :companyId', { companyId })
+      .orderBy(`job.${order}`, sort)
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const list = jobs.map((job) => ({
+      ...job,
+      company: job.company?.name,
+      skills: job.skills?.map((s) => s.name),
+    }));
+
+    return {
+      list,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   async searchListJob(
     page: number,
     limit: number,

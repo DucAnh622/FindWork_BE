@@ -73,34 +73,70 @@ export class CompanyService {
   async searchListCompany(
     page: number,
     limit: number,
-    sort: string,
-    key: string,
-    address: string,
+    keyword: string,
+    order: string,
+    sort: 'ASC' | 'DESC',
+    specialityId: number,
+    address: string[],
   ) {
-    const [companies, total] = await this.companyRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-      where: {
-        name: Like(`%${key}%`),
-        address: address,
-      },
-      relations: ['speciality', 'jobs'],
-      order: {
-        [sort]: 'DESC',
-      },
-    });
-    const list = companies.map((company) => {
-      return {
-        ...companies,
-        spciality: company.speciality?.name,
-        jobCount: company.jobs ? company.jobs.length : 0,
-      };
-    });
+    const validSort: 'ASC' | 'DESC' =
+      sort?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const validOrder = order || 'createdAt';
+
+    const qb = this.companyRepository
+      .createQueryBuilder('company')
+      .leftJoinAndSelect('company.speciality', 'speciality')
+      .leftJoinAndSelect('company.jobs', 'jobs')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (specialityId) {
+      qb.andWhere('speciality.id = :specialityId', { specialityId });
+    }
+
+    if (keyword) {
+      qb.andWhere('company.name LIKE :keyword', { keyword: `%${keyword}%` });
+    }
+
+    if (address?.length) {
+      const addrConditions = address.map(
+        (_, i) => `company.address LIKE :addr${i}`,
+      );
+      const addrParams = Object.fromEntries(
+        address.map((val, i) => [`addr${i}`, `%${val}%`]),
+      );
+      qb.andWhere(`(${addrConditions.join(' OR ')})`, addrParams);
+    }
+
+    const validColumns = [
+      'id',
+      'name',
+      'image',
+      'address',
+      'phone',
+      'description',
+    ];
+    if (order === 'speciality') {
+      qb.addOrderBy('speciality.name', validSort);
+    } else if (validColumns.includes(order)) {
+      qb.addOrderBy(`company.${validOrder}`, validSort);
+    } else {
+      qb.addOrderBy('company.name', validSort);
+    }
+
+    const [companies, total] = await qb.getManyAndCount();
+
+    const list = companies.map((company) => ({
+      ...company,
+      speciality: company.speciality?.name || null,
+      jobCount: company.jobs ? company.jobs.length : 0,
+    }));
+
     return {
-      list: list,
-      page: page,
-      limit: limit,
-      total: total,
+      list,
+      page,
+      limit,
+      total,
       totalPages: Math.ceil(total / limit),
     };
   }
@@ -159,23 +195,22 @@ export class CompanyService {
     if (!Array.isArray(ids) || ids.length === 0) {
       throw new BadRequestException('Invalid data');
     }
-  
+
     const companies = await this.companyRepository.find({
       where: { id: In(ids) },
       relations: ['jobs', 'speciality'],
     });
-  
+
     if (companies.length === 0) {
       throw new BadRequestException('Invalid input!');
     }
-  
+
     for (const company of companies) {
       company.jobs = [];
       company.speciality = null;
       await this.companyRepository.save(company);
     }
-  
+
     return await this.companyRepository.delete(ids);
   }
-  
 }

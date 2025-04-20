@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseArrayPipe,
   Post,
   Put,
   Query,
@@ -35,21 +36,29 @@ export class CompanyController {
     return this.companyService.getListAllCompany();
   }
 
-  @Get('')
+  @Get('search')
   @Public()
   @ResponseMessage('Search companies successfully!')
   searchListCompany(
     @Query('page') page: number,
     @Query('limit') limit: number,
-    @Query('sort') sort: string,
-    @Query('key') key: string,
-    @Query('address') address: string,
+    @Query('sort') sort: 'ASC' | 'DESC',
+    @Query('order') order: string,
+    @Query('keyword') keyword: string,
+    @Query('specialityId') specialityId: number,
+    @Query(
+      'address',
+      new ParseArrayPipe({ items: String, separator: ',', optional: true }),
+    )
+    address: string[] = [],
   ) {
     return this.companyService.searchListCompany(
       page,
       limit,
+      keyword,
+      order,
       sort,
-      key,
+      specialityId,
       address,
     );
   }

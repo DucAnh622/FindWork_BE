@@ -161,7 +161,10 @@ export class JobService {
       ...job,
       companyId: job.company?.id ?? null,
       skills: job.skills.map((skill) => skill.id),
-      listSkill: job.skills.map((skill) => skill.name),
+      listSkill: job.skills.map((skill) => ({
+        id: skill.id,
+        name: skill.name,
+      })),
     };
   }
 

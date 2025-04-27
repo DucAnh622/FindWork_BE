@@ -19,6 +19,7 @@ export class SpecialityController {
 
   @Get()
   @ResponseMessage('Get speciality successfully!')
+  @Public()
   getListSpeciality(
     @Query('page') page: number,
     @Query('limit') limit: number,

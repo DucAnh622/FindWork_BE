@@ -85,6 +85,7 @@ export class AuthService {
       let res = await this.jwtService.verify(refreshToken, {
         secret: this.configService.get<string>('JWTR_PASS'),
       });
+      console.log(res);
       let data = await this.userService.findByRefreshToken(refreshToken);
       if (data) {
         const { id, username, email, roles, phone, image } = data;

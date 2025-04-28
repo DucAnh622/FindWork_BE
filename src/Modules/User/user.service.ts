@@ -185,7 +185,10 @@ export class UserService {
   }
 
   async updateRefreshToken(refreshtoken: string, email: string) {
-    const data = await this.userRepository.findOneBy({ email: email });
+    const data = await this.userRepository.findOne({
+      where: { email: email },
+      relations: ['roles'],
+    });
     if (data) {
       data.refreshToken = refreshtoken;
       return await this.userRepository.save(data);
@@ -236,24 +239,23 @@ export class UserService {
     if (!Array.isArray(ids) || ids.length === 0) {
       throw new BadRequestException('Invalid data');
     }
-  
+
     const users = await this.userRepository.find({
       where: { id: In(ids) },
       relations: ['roles', 'company', 'resumes'],
     });
-  
+
     if (users.length === 0) {
       throw new BadRequestException('Invalid input!');
     }
-  
+
     for (const user of users) {
       user.roles = [];
       user.company = null;
       user.resumes = [];
       await this.userRepository.save(user);
     }
-  
+
     return await this.userRepository.delete(ids);
   }
-  
 }

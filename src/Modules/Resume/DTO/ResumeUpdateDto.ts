@@ -7,7 +7,6 @@ export class ResumeUpdateDto {
   nameCV: string;
   @IsNotEmpty()
   template: string;
-  @IsNotEmpty()
   url: string;
   @IsNotEmpty()
   status: string;

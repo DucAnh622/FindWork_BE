@@ -9,11 +9,14 @@ import {
   Query,
   Req,
   Request,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ResumeCreateDto } from './DTO/ResumeCreateDto';
 import { ResumeUpdateDto } from './DTO/ResumeUpdateDto';
 import { ResumeService } from './resume.service';
 import { ResponseMessage } from 'src/Decorator/customize';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('resumes')
 export class ResumeController {
@@ -91,9 +94,14 @@ export class ResumeController {
   }
 
   @Post()
+  @UseInterceptors(FileInterceptor('url'))
   @ResponseMessage('Create resume successfully!')
-  createResume(@Request() req, @Body() resume: ResumeCreateDto) {
-    return this.resumeService.createResume(req.user, resume);
+  createResume(
+    @Request() req,
+    @Body() resume: ResumeCreateDto,
+    @UploadedFile() url: Express.Multer.File,
+  ) {
+    return this.resumeService.createResume(req.user, resume, url);
   }
 
   @Put()

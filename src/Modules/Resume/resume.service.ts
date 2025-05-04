@@ -6,7 +6,7 @@ import { ResumeCreateDto } from './DTO/ResumeCreateDto';
 import JobEntity from 'src/Entity/job.entity';
 import UserEntity from 'src/Entity/userEntity';
 import { ResumeUpdateDto } from './DTO/ResumeUpdateDto';
-import { Request as ExpressRequest } from 'express';
+import { CloudinaryService } from '../Upload/cloudinary.service';
 import { IUSER } from '../User/user.interface';
 
 @Injectable()
@@ -18,6 +18,7 @@ export class ResumeService {
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(ResumeEntity)
     private readonly resumeRepository: Repository<ResumeEntity>,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async getListResume(
@@ -155,7 +156,11 @@ export class ResumeService {
     return resume;
   }
 
-  async createResume(userReq: IUSER, resume: ResumeCreateDto) {
+  async createResume(
+    userReq: IUSER,
+    resume: ResumeCreateDto,
+    url: Express.Multer.File,
+  ) {
     const user = await this.userRepository.findOne({
       where: { id: userReq.id },
     });
@@ -164,6 +169,13 @@ export class ResumeService {
       throw new BadRequestException('Authorized is invalid!');
     }
 
+    if (url) {
+      const result = await this.cloudinaryService.uploadFile(url.buffer);
+      if (!result) {
+        throw new BadRequestException('Upload file failed!');
+      }
+      resume.url = result.url;
+    }
     let jobs: JobEntity[] = [];
     if (resume.jobs && resume.jobs.length > 0) {
       jobs = await this.jobRepository.findByIds(resume.jobs);
@@ -204,16 +216,16 @@ export class ResumeService {
     if (!Array.isArray(ids) || ids.length === 0) {
       throw new BadRequestException('Invalid data');
     }
-  
+
     const resumes = await this.resumeRepository.find({
       where: { id: In(ids) },
       relations: ['user', 'jobs'],
     });
-  
+
     if (resumes.length === 0) {
       throw new BadRequestException('Invalid input!');
     }
-  
+
     for (const resume of resumes) {
       if (resume.jobs.length > 0) {
         await this.resumeRepository
@@ -223,8 +235,7 @@ export class ResumeService {
           .remove(resume.jobs);
       }
     }
-  
+
     return await this.resumeRepository.delete(ids);
   }
-  
 }

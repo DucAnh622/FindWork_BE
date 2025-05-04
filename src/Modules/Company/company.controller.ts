@@ -8,11 +8,14 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { CompanyCreate } from './DTO/CompanyCreate';
 import { CompanyUpdate } from './DTO/CompanyUpdate';
 import { Public, ResponseMessage } from 'src/Decorator/customize';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('/companies')
 export class CompanyController {
@@ -63,16 +66,24 @@ export class CompanyController {
     );
   }
 
-  @Post('')
+  @Post()
+  @UseInterceptors(FileInterceptor('image'))
   @ResponseMessage('Create companies successfully!')
-  createCompany(@Body() companyCreate: CompanyCreate) {
-    return this.companyService.createCompany(companyCreate);
+  createCompany(
+    @Body() companyCreate: CompanyCreate,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    return this.companyService.createCompany(companyCreate, image);
   }
 
   @Put('/:id')
+  @UseInterceptors(FileInterceptor('image'))
   @ResponseMessage('Update companies successfully!')
-  updateCompany(@Body() companyUpdate: CompanyUpdate) {
-    return this.companyService.updateCompany(companyUpdate);
+  updateCompany(
+    @Body() companyUpdate: CompanyUpdate,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    return this.companyService.updateCompany(companyUpdate, image);
   }
 
   @Get('/:id')

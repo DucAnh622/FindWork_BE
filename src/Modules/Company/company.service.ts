@@ -1,17 +1,18 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import CompanyEntity from 'src/Entity/company.entity';
-import { In, Like, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CompanyCreate } from './DTO/CompanyCreate';
 import { CompanyUpdate } from './DTO/CompanyUpdate';
 import JobEntity from 'src/Entity/job.entity';
 import SpecialityEntity from 'src/Entity/speciality.entity';
-
+import { CloudinaryService } from '../Upload/cloudinary.service';
 @Injectable()
 export class CompanyService {
   constructor(
     @InjectRepository(CompanyEntity)
     private companyRepository: Repository<CompanyEntity>,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async getListAllCompany() {
@@ -141,12 +142,19 @@ export class CompanyService {
     };
   }
 
-  async createCompany(companyCreate: CompanyCreate) {
+  async createCompany(companyCreate: CompanyCreate, file: Express.Multer.File) {
     const exist = await this.companyRepository.findOneBy({
       name: companyCreate.name,
     });
     if (exist) {
       throw new BadRequestException('Company is exist!');
+    }
+    if (file) {
+      const result = await this.cloudinaryService.uploadFile(file.buffer);
+      if (!result) {
+        throw new BadRequestException('Upload image failed!');
+      }
+      companyCreate.image = result.url;
     }
     const data = await this.companyRepository.create(companyCreate);
     data.speciality = { id: companyCreate.specialityId } as SpecialityEntity;
@@ -156,12 +164,19 @@ export class CompanyService {
     return await this.companyRepository.save(data);
   }
 
-  async updateCompany(companyUpdate: CompanyUpdate) {
+  async updateCompany(companyUpdate: CompanyUpdate, file) {
     const company = await this.companyRepository.findOneBy({
       id: companyUpdate.id,
     });
     if (company === null) {
       throw new BadRequestException('Company is not exist!');
+    }
+    if (file) {
+      const result = await this.cloudinaryService.uploadFile(file.buffer);
+      if (!result) {
+        throw new BadRequestException('Upload image failed!');
+      }
+      companyUpdate.image = result.url;
     }
     company.name = companyUpdate.name;
     company.address = companyUpdate.address;

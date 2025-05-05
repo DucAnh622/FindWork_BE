@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import SpecialityEntity from 'src/Entity/speciality.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { SpecialityCreateDTO } from './DTO/SpecialityCreateDTO';
 import { SpecialityUpdateDTO } from './DTO/SpecialityUpdateDTO';
 import CompanyEntity from 'src/Entity/company.entity';
@@ -34,13 +34,22 @@ export class SpecialityService {
     return list;
   }
 
-  async getListSpeciality(page: number, limit, order: string, sort: string) {
+  async getListSpeciality(
+    page: number,
+    limit,
+    order: string,
+    sort: string,
+    keyword: string,
+  ) {
+    const whereCondition = keyword !== '' ? { name: Like(`%${keyword}%`) } : {};
+
     const [list, total] = await this.specialityRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
       order: {
         [order]: sort,
       },
+      where: whereCondition,
     });
     return {
       list: list,
@@ -97,23 +106,22 @@ export class SpecialityService {
   }
 
   async deleteSpeciality(ids: number[]) {
-
     if (!Array.isArray(ids) || ids.length === 0) {
       throw new BadRequestException('Invalid data');
     }
 
     const specialities = await this.specialityRepository.find({
-      where: { id: In(ids)  },
+      where: { id: In(ids) },
       relations: ['companies'],
     });
 
     if (specialities.length === 0) {
       throw new BadRequestException('Invalid input!');
     }
-    const companyIds = specialities.flatMap(speciality =>
-      speciality.companies.map(company => company.id)
+    const companyIds = specialities.flatMap((speciality) =>
+      speciality.companies.map((company) => company.id),
     );
-  
+
     if (companyIds.length > 0) {
       await this.companyRepository
         .createQueryBuilder()

@@ -25,8 +25,9 @@ export class SpecialityController {
     @Query('limit') limit: number,
     @Query('order') order: string,
     @Query('sort') sort: string,
+    @Query('keyword') keyword: string = '',
   ) {
-    return this.specialityService.getListSpeciality(page, limit, order, sort);
+    return this.specialityService.getListSpeciality(page, limit, order, sort, keyword);
   }
 
   @Get('/all')

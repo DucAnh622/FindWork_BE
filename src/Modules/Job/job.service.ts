@@ -75,6 +75,7 @@ export class JobService {
     const list = jobs.map((job) => ({
       ...job,
       company: job.company?.name,
+      image: job.company?.image,
       skills: job.skills?.map((s) => s.name),
     }));
 
@@ -136,6 +137,7 @@ export class JobService {
     const list = jobs.map((job) => ({
       ...job,
       company: job.company?.name || null,
+      image: job.company?.image,
       skills: job.skills?.map((skill) => skill.name) || [],
     }));
 
